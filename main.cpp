@@ -11,27 +11,16 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/base64.h>
 
+#include "support.h"
+#include <QSettings>
+#include <QVariant>
+
+#include <QDebug>
+
 USING_NAMESPACE(CryptoPP)
 USING_NAMESPACE(std)
 const int MAX_PHRASE_LENGTH=250;
 
-void test_1()
-{
-    CryptoPP::MD5 hash;
-    byte digest[ CryptoPP::MD5::DIGESTSIZE ];
-    std::string message = "AGty";
-
-    hash.CalculateDigest( digest, (const byte*)message.c_str(), message.length());
-
-    CryptoPP::HexEncoder encoder;
-    std::string output;
-    encoder.Attach( new CryptoPP::StringSink( output ) );
-    encoder.Put( digest, sizeof(digest) );
-    encoder.MessageEnd();
-
-    std::cout << "Input string: " << message << std::endl;
-    std::cout << "MD5: " << output << std::endl;
-}
 
 void test_2()
 {
@@ -97,79 +86,8 @@ void test_2()
     cout << "Recovered plain text   " <<recovered<< endl;
 }
 
-void test_3()
-{
-    AutoSeededRandomPool prng;
 
-    SecByteBlock key(AES::DEFAULT_KEYLENGTH);
-    prng.GenerateBlock( key, key.size() );
-
-    string plain = "ECB Mode Test";
-    string cipher, encoded, recovered;
-
-    /*********************************\
-    \*********************************/
-
-    try
-    {
-        cout << "plain text: " << plain << endl;
-
-        ECB_Mode< AES >::Encryption e;
-        e.SetKey( key, key.size() );
-
-        // The StreamTransformationFilter adds padding
-        //  as required. ECB and CBC Mode must be padded
-        //  to the block size of the cipher.
-        StringSource ss1( plain, true,
-            new StreamTransformationFilter( e,
-                new StringSink( cipher )
-            ) // StreamTransformationFilter
-        ); // StringSource
-    }
-    catch( CryptoPP::Exception& e )
-    {
-        cerr << e.what() << endl;
-        exit(1);
-    }
-
-    /*********************************\
-    \*********************************/
-
-    // Pretty print cipher text
-    StringSource ss2( cipher, true,
-        new HexEncoder(
-            new StringSink( encoded )
-        ) // HexEncoder
-    ); // StringSource
-    cout << "cipher text: " << encoded << endl;
-
-    /*********************************\
-    \*********************************/
-
-    try
-    {
-        ECB_Mode< AES >::Decryption d;
-        // ECB Mode does not use an IV
-        d.SetKey( key, key.size() );
-
-        // The StreamTransformationFilter removes
-        //  padding as required.
-        StringSource ss3( cipher, true,
-            new StreamTransformationFilter( d,
-                new StringSink( recovered )
-            ) // StreamTransformationFilter
-        ); // StringSource
-
-        cout << "recovered text: " << recovered << endl;
-    }
-    catch( CryptoPP::Exception& e )
-    {
-        cerr << e.what() << endl;
-        exit(1);
-    }
-}
-
-std::string encrypt(const std::string& str_in, const std::string& key)
+std::string AESencrypt(const std::string& str_in, const std::string& key)
 {
     std::string str_out;
     CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption encryption((byte*)key.c_str(), key.length());
@@ -185,7 +103,7 @@ std::string encrypt(const std::string& str_in, const std::string& key)
     return str_out;
 }
 
-std::string decrypt(const std::string& str_in, const std::string& key)
+std::string AESdecrypt(const std::string& str_in, const std::string& key)
 {
     std::string str_out;
 
@@ -209,8 +127,8 @@ void test_4()
         std::string str_encrypted, str_decrypted;
 
         try {
-            str_encrypted = encrypt(str, key);
-            str_decrypted = decrypt(str_encrypted, key);
+            str_encrypted = AESencrypt(str, key);
+            str_decrypted = AESdecrypt(str_encrypted, key);
         }
         catch (const CryptoPP::Exception& e) {
            std::cerr << e.what() << std::endl;
@@ -220,23 +138,43 @@ void test_4()
         std::cout << "str_decrypted: " << str_decrypted << std::endl;
 }
 
+RSA::PublicKey createPublicKey(QString pkey)
+{
+    Support* sp = new Support;
+    sp->settings = new QSettings("../CrypToPPTest/public.key",QSettings::IniFormat);
+    Integer n(sp->settings->value("public/n",0).toString().toUtf8().constData());
+    Integer e(sp->settings->value("public/e",0).toString().toUtf8().constData());
+    delete sp;
+    RSA::PublicKey pubKey;
+    pubKey.Initialize(n, e);
+    return pubKey;
+}
+
+RSA::PrivateKey createPrivateKey(QString prkey)
+{
+    Support* sp = new Support;
+    sp->settings = new QSettings("../CrypToPPTest/private.key",QSettings::IniFormat);
+    Integer n(sp->settings->value("public/n",0).toString().toUtf8().constData());
+    Integer e(sp->settings->value("public/e",0).toString().toUtf8().constData());
+    Integer d(sp->settings->value("private/d",0).toString().toUtf8().constData());
+    RSA::PrivateKey privKey;
+    privKey.Initialize(n, e, d);
+    /////////////////////////////////////////////////////////
+    delete sp;
+    return privKey;
+}
 
 // new version pf KP
 void test_6()
 {
     AutoSeededRandomPool prng;
 
-	//see file
-    Integer n("");
-    Integer e("");
-    Integer d("");
-
     /////////////////////////////////////////////////////////
-    RSA::PublicKey pubKey;
-    pubKey.Initialize(n, e);
+    RSA::PublicKey pubKey = createPublicKey("sd");
+    ///pubKey.Initialize(n, e);
 
-    RSA::PrivateKey privKey;
-    privKey.Initialize(n, e, d);
+    RSA::PrivateKey privKey = createPrivateKey("sd");
+    ///privKey.Initialize(n, e, d);
     /////////////////////////////////////////////////////////
 
     string message, recovered;

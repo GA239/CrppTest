@@ -15,5 +15,9 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    support.cpp
 LIBS += -lcryptopp
+
+HEADERS += \
+    support.h
