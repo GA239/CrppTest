@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "support/support.h"
 
 namespace Ui {
 class MainWindow;
@@ -14,9 +15,21 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+    Support *getSupport();
+
+public slots:
+    void moveToRsa();
+    void moveToMain();
+
+private:
+    void moveToForm(Forms f = MAIN_FORM);
+
+protected:
+    Support* sp;
 
 private:
     Ui::MainWindow *ui;
+    QWidget *current_form;
 };
 
 #endif // MAINWINDOW_H
