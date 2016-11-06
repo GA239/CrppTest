@@ -9,21 +9,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    this->sp = new Support();
     this->current_form = NULL;
     moveToForm(MAIN_FORM);
 }
 
 MainWindow::~MainWindow()
 {
-    delete this->sp;
     delete this->current_form;
     delete ui;
-}
-
-Support *MainWindow::getSupport()
-{
-    return this->sp;
 }
 
 ///public slots:

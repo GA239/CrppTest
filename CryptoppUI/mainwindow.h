@@ -25,7 +25,6 @@ private:
     void moveToForm(Forms f = MAIN_FORM);
 
 protected:
-    Support* sp;
 
 private:
     Ui::MainWindow *ui;

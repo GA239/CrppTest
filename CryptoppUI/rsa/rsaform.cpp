@@ -1,7 +1,6 @@
 #include "rsaform.h"
 #include "ui_rsaform.h"
 
-#include <QPushButton>
 #include <QVBoxLayout>
 #include <qlabel.h>
 
@@ -16,70 +15,21 @@ RsaForm::RsaForm(MainWindow *parent) :
     ui(new Ui::RsaForm)
 {
     ui->setupUi(this);
-
-    QLabel *mainlabel = new QLabel(this);
-    QLabel *label = new QLabel(this);
-    QCheckBox* chbx = new QCheckBox(this);
-    chbx->setText(QString::fromUtf8("ключ прочитан"));
-
-    QPushButton *getKeyButton = new QPushButton(this);
-    getKeyButton->setText(QString::fromUtf8("Открыть"));
-
-    QPushButton *returnButton = new QPushButton(this);
-    returnButton->setText(QString::fromUtf8("Вернуться"));
-    connect(returnButton, SIGNAL(clicked()), parent, SLOT(moveToMain()));
-
-    QPushButton *EncryptButton = new QPushButton(this);
-    EncryptButton->setText(QString::fromUtf8("Зашифровать"));
-    connect(EncryptButton, SIGNAL(clicked()), this, SLOT(encrypte()));
-
-    mainlabel->setText(QString::fromUtf8("Главный текст"));
-    this->textedit = new QTextEdit(this);
-
-
+    this->parent = parent;
     RsaDialog* form = new RsaDialog(this);
     if (form->exec() != QDialog::Accepted)
     {
         int res = form->getResult();
         if(res == 3)
-        {
-            label->setText(QString::fromUtf8("Открыть публичный ключ"));
-            connect(getKeyButton, SIGNAL(clicked()), this, SLOT(openPublicKeySlot()));
-
-        }
+            this->defaultUI(true,res);
         else if (res == 4)
-        {
-            label->setText(QString::fromUtf8("Открыть секретнвй ключ"));
-            connect(getKeyButton, SIGNAL(clicked()), this, SLOT(openPrivateKeySlot()));
-        }
+            this->defaultUI(true,res);
         else
-        {
-            label->setText(QString::fromUtf8("Ничего не выбрано ... "));
-        }
+            this->defaultUI(false,res);
     }
     else
-    {
-        label->setText(QString::fromUtf8("Не работает"));
-    }
+        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Не работает"));
     delete form;
-
-    QVBoxLayout *leftLayout = new QVBoxLayout;
-    leftLayout->addWidget(mainlabel);
-    leftLayout->addWidget(textedit);
-
-    QVBoxLayout *rightLayout = new QVBoxLayout;
-    rightLayout->addWidget(label);
-    rightLayout->addWidget(getKeyButton);
-    rightLayout->addWidget(chbx);
-    rightLayout->addWidget(EncryptButton);
-    rightLayout->addStretch(1);
-    rightLayout->addWidget(returnButton);
-
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setMargin(11);
-    mainLayout->setSpacing(6);
-    mainLayout->addLayout(leftLayout);
-    mainLayout->addLayout(rightLayout);
 }
 
 RsaForm::~RsaForm()
@@ -94,15 +44,27 @@ void RsaForm::openPublicKeySlot()
                                 QString::fromUtf8("Открыть файл"),
                                 QDir::homePath(), "(*.key);;All files (*.*)");
     if(!this->createPublicKey(fileName))
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ключ прочитан"));
-    else
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка ключа"));
+    {
+        if(this->pubk.Validate(CryptoPP::NullRNG(),0))
+        {
+            this->chbx->setCheckable(true);
+            this->chbx->setChecked(true);
+            this->chbx->setCheckable(false);
+            this->ActionButton->setVisible(true);
+            QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ключ прочитан"));
+            return;
+        }
+    }
+    this->chbx->setCheckable(true);
+    this->chbx->setChecked(false);
+    this->chbx->setCheckable(false);
+    this->ActionButton->setVisible(false);
+    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка ключа"));
     return;
 }
 
 void RsaForm::encrypte()
 {
-    CryptoPP::AutoSeededRandomPool prng;
 
     /////////////////////////////////////////////////////////
     //CryptoPP::RSA::PublicKey pubKey = createPublicKey("sd");
@@ -117,7 +79,11 @@ void RsaForm::encrypte()
 
     //message = "hello my name is andrew. Itis very secret message thanksssssstds";
     message = this->textedit->toPlainText().toUtf8().constData();
-
+    if(message.empty())
+    {
+        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Отсутствует текст"));
+        return;
+    }
     // Treat the message as a big endian array
     m = CryptoPP::Integer((const byte *)message.data(), message.size());
 
@@ -141,7 +107,37 @@ void RsaForm::encrypte()
     out << qstr ;
     file.close();
     QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Текст Зашифрован"));
+}
 
+void RsaForm::decrypte()
+{
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                QString::fromUtf8("Открыть файл"),
+                                QDir::currentPath(),
+                                "(*.result);;All files (*.*)");
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+             return;
+
+    QString qstr;
+    QTextStream in(&file);
+    in >> qstr;
+    file.close();
+
+    CryptoPP::Integer c = CryptoPP::Integer(qstr.toUtf8().constData());
+
+    CryptoPP::AutoSeededRandomPool prng;
+    // Decrypt
+    CryptoPP::Integer r = this->prik.CalculateInverse(prng, c);
+    //cout << "r: " << hex << r << endl;
+
+    std::string recovered;
+
+    size_t req = r.MinEncodedSize();
+    recovered.resize(req);
+    r.Encode((byte *)recovered.data(), recovered.size());
+    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Текст Расшифрован"));
+    this->textedit->setText(QString::fromStdString(recovered));
 }
 
 void RsaForm::openPrivateKeySlot()
@@ -150,9 +146,21 @@ void RsaForm::openPrivateKeySlot()
                                 QString::fromUtf8("Открыть файл"),
                                 QDir::homePath(), "(*.key);;All files (*.*)");
     if(!this->createPrivateKey(fileName))
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ключ прочитан"));
-    else
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка ключа"));
+    {
+        if(this->prik.Validate(CryptoPP::NullRNG(),0))
+        {
+            this->chbx->setCheckable(true);
+            this->chbx->setChecked(true);
+            this->ActionButton->setVisible(true);
+            QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ключ прочитан"));
+            return;
+        }
+    }
+    this->chbx->setCheckable(true);
+    this->chbx->setChecked(false);
+    this->chbx->setCheckable(false);
+    this->ActionButton->setVisible(false);
+    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка ключа"));
     return;
 }
 
@@ -185,4 +193,70 @@ bool RsaForm::createPrivateKey(QString pkey)
     }
     delete settings;
     return 1;
+}
+
+void RsaForm::defaultUI(bool succes, int mode)
+{
+    QVBoxLayout *leftLayout = new QVBoxLayout;
+    QVBoxLayout *rightLayout = new QVBoxLayout;
+    QLabel *mainlabel = new QLabel(this);
+    leftLayout->addWidget(mainlabel);
+
+    if(succes)
+    {
+        mainlabel->setText(QString::fromUtf8("Текст"));
+
+        this->chbx = new QCheckBox(this);
+        this->chbx->setText(QString::fromUtf8("ключ прочитан"));
+        this->chbx->setCheckable(false);
+
+        QPushButton *getKeyButton = new QPushButton(this);
+        getKeyButton->setText(QString::fromUtf8("Открыть"));
+
+        this->ActionButton = new QPushButton(this);
+        this->ActionButton->setVisible(false);
+        this->textedit = new QTextEdit(this);
+
+        QLabel *label = new QLabel(this);
+        if(mode == 3)
+        {
+            label->setText(QString::fromUtf8("Открыть публичный ключ"));
+            this->ActionButton->setText(QString::fromUtf8("Зашифровать"));
+            connect(getKeyButton, SIGNAL(clicked()), this, SLOT(openPublicKeySlot()));
+            connect(this->ActionButton, SIGNAL(clicked()), this, SLOT(encrypte()));
+        }
+        if(mode == 4)
+        {
+            this->textedit->setReadOnly(true);
+            label->setText(QString::fromUtf8("Открыть секретный ключ"));
+            this->ActionButton->setText(QString::fromUtf8("Расшифровать"));
+            connect(getKeyButton, SIGNAL(clicked()), this, SLOT(openPrivateKeySlot()));
+            connect(this->ActionButton, SIGNAL(clicked()), this, SLOT(decrypte()));
+        }
+
+        leftLayout->addWidget(this->textedit);
+
+        rightLayout->addWidget(label);
+        rightLayout->addWidget(getKeyButton);
+        rightLayout->addWidget(this->chbx);
+        rightLayout->addWidget(this->ActionButton);
+        rightLayout->addStretch(1);
+    }
+    else
+    {
+        mainlabel->setText(QString::fromUtf8("Не выбран режим"));
+    }
+
+    QPushButton *returnButton = new QPushButton(this);
+    returnButton->setText(QString::fromUtf8("Вернуться"));
+    connect(returnButton, SIGNAL(clicked()), this->parent, SLOT(moveToMain()));
+
+    rightLayout->addWidget(returnButton);
+
+    QHBoxLayout *mainLayout = new QHBoxLayout(this);
+    mainLayout->setMargin(11);
+    mainLayout->setSpacing(6);
+    mainLayout->addLayout(leftLayout);
+    mainLayout->addLayout(rightLayout);
+    return;
 }
