@@ -66,13 +66,6 @@ void RsaForm::openPublicKeySlot()
 void RsaForm::encrypte()
 {
 
-    /////////////////////////////////////////////////////////
-    //CryptoPP::RSA::PublicKey pubKey = createPublicKey("sd");
-    ///pubKey.Initialize(n, e);
-
-    //RSA::PrivateKey privKey = createPrivateKey("sd");
-    ///privKey.Initialize(n, e, d);
-    /////////////////////////////////////////////////////////
 
     std::string message;
     CryptoPP::Integer m, c;
