@@ -19,7 +19,8 @@ public:
 public slots:
     encr();
     decr();
-
+    kg();
+    bk();
 
 private:
     Ui::RsaDialog *ui;

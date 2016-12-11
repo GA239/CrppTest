@@ -30,8 +30,6 @@ FORMS    += mainwindow.ui \
     rsa/rsaform.ui \
     rsa/rsadialog.ui
 
-LIBS += Qt5PlatformSupportd.lib windowsd.lib rpcrt4.lib
-
 CONFIG(debug, debug|release) {
     LIBS+= -L../CryptoppUI/cryptopp_builded/dbg -lcryptopp
 }

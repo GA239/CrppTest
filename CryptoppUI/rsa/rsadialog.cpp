@@ -14,6 +14,11 @@ RsaDialog::RsaDialog(QWidget *parent) :
     QVBoxLayout *verLayout = new QVBoxLayout;
     this->setLayout(verLayout);
 
+    QPushButton *Keygen = new QPushButton(this);
+    Keygen->setText("Keygen");
+    this->layout()->addWidget(Keygen);
+    connect(Keygen, SIGNAL(clicked()), this, SLOT(kg()));
+
     QPushButton *EncrButton = new QPushButton(this);
     EncrButton->setText("encrypt");
     this->layout()->addWidget(EncrButton);
@@ -24,6 +29,10 @@ RsaDialog::RsaDialog(QWidget *parent) :
     this->layout()->addWidget(DecrButton);
     connect(DecrButton, SIGNAL(clicked()), this, SLOT(decr()));
 
+    QPushButton *returnButton = new QPushButton(this);
+    returnButton->setText("cancel");
+    this->layout()->addWidget(returnButton);
+    connect(returnButton, SIGNAL(clicked()), this, SLOT(bk()));
 }
 
 RsaDialog::~RsaDialog()
@@ -45,5 +54,17 @@ RsaDialog::encr()
 RsaDialog::decr()
 {
     this->result = 4;
+    reject();
+}
+
+RsaDialog::kg()
+{
+    this->result = 5;
+    reject();
+}
+
+RsaDialog::bk()
+{
+    this->result = 6;
     reject();
 }

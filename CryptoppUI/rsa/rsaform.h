@@ -40,6 +40,7 @@ public slots:
 
 private:
     bool createPublicKey(QString pkey);
+    bool keyGeneration();
     bool createPrivateKey(QString pkey);
     void defaultUI(bool succes, int mode);
 
