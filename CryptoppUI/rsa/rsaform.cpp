@@ -203,43 +203,17 @@ bool RsaForm::createPublicKey(QString pkey)
 
 bool RsaForm::keyGeneration()
 {
-    ///////////////////////////////////////
-    // Pseudo Random Number Generator
-    CryptoPP::AutoSeededRandomPool rng;
-    ///////////////////////////////////////
     bool ok;
-    int i = QInputDialog::getInt(this, QString::fromUtf8("Введите длину ключа"),
-                             QString::fromUtf8("длина:"), 1024, 0, 10000, 1024, &ok);
-    if(!ok)
-        return false;
 
-    if(i > 11000)
-    {
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("довольно длинный ключик получается..Давайте поменьше"));
-        return false;
-    }
-    // Generate Parameters
-    CryptoPP::InvertibleRSAFunction params;
-    params.GenerateRandomWithKeySize(rng, i);
-
-
-    /*
-    ///////////////////////////////////////
-    // Generated Parameters
-    const CryptoPP::Integer& n = params.GetModulus();
-    const CryptoPP::Integer& p = params.GetPrime1();
-    const CryptoPP::Integer& q = params.GetPrime2();
-    const CryptoPP::Integer& d = params.GetPrivateExponent();
-    const CryptoPP::Integer& e = params.GetPublicExponent();
-
-    CryptoPP::AutoSeededRandomPool prng;
+    CryptoPP::AutoSeededRandomPool rng;
     CryptoPP::RSA::PrivateKey privKey;
-    privKey.GenerateRandomWithKeySize(sr, 2039);
-    CryptoPP::RSA::PublicKey pubKey(privKey);
-    */
 
-    CryptoPP::RSA::PrivateKey privKey(params);
-    CryptoPP::RSA::PublicKey pubKey(params);
+    CryptoPP::Integer e("22245245460426616102189742625441633226801");
+    privKey.Initialize(rng,255,e);
+
+    CryptoPP::RSA::PublicKey pubKey(privKey);
+
+
     if(!privKey.Validate(rng,0))
     {
         QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка создания секретного ключа"));
