@@ -2,7 +2,15 @@
 #define SUPPORT_H
 
 #include <QSettings>
-#include <QVariant>
+
+#define CRYPTOPP_DEFAULT_NO_DLL
+#include <cryptopp_builded/cryptopp/dll.h>
+#ifdef CRYPTOPP_WIN32_AVAILABLE
+#include <windows.h>
+#endif
+
+#include <sstream>
+
 
 typedef enum
 { MAIN_FORM,
@@ -15,7 +23,9 @@ public:
     Support();
     ~Support();
 
-    QSettings* settings;
+    CryptoPP::Integer qstrToInt(QString str);
+    QString intToQStr(CryptoPP::Integer dec);
+    QString showMetoInfo(CryptoPP::RSA::PublicKey pk);
 
 private:
 

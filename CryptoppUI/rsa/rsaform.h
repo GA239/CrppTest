@@ -8,16 +8,7 @@
 #include <qcheckbox.h>
 #include <QPushButton>
 
-
-#define CRYPTOPP_DEFAULT_NO_DLL
-#include <cryptopp_builded/cryptopp/dll.h>
-#ifdef CRYPTOPP_WIN32_AVAILABLE
-#include <windows.h>
-#endif
-
 #include <cryptopp_builded/cryptopp/rsa.h>
-//USING_NAMESPACE(CryptoPP)
-
 
 namespace Ui {
 class RsaForm;
@@ -36,7 +27,6 @@ public slots:
     void openPublicKeySlot();
     void encrypte();
     void decrypte();
-
 
 private:
     bool createPublicKey(QString pkey);
