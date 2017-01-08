@@ -2,15 +2,12 @@
 #include "ui_rsaform.h"
 
 #include <QVBoxLayout>
-#include <qlabel.h>
 
 #include <qfiledialog.h>
 #include <qinputdialog.h>
 
-#include <qmessagebox.h>
 #include <qtextstream.h>
 #include <sstream>
-#include "rsadialog.h"
 
 RsaForm::RsaForm(MainWindow *parent) :
   QWidget(parent->centralWidget()),
@@ -20,73 +17,65 @@ RsaForm::RsaForm(MainWindow *parent) :
     this->parent = parent;
 
     this->textedit = NULL;
-    this->chbx = NULL;
     this->ActionButton = NULL;
+    this->metainfo = NULL;
+    Support sup;
 
     bool flag = false;
-    int res = 0;
     while(!flag)
     {
         RsaDialog* form = new RsaDialog(this);
         if (form->exec() != QDialog::Accepted)
         {
-            res = form->getResult();
-            if(res == 5)
-            {
-                if(!this->keyGeneration())
-                {
-                    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Ключ не создан"));
-                }
-            }
+            if(form->getResult() == KEYGEN)
+                sup.message(keyGeneration());
             else
             {
                 flag = true;
-                if(res == 3)
-                    this->defaultUI(true,res);
-                else if (res == 4)
-                    this->defaultUI(true,res);
+                if(form->getResult() == ENCRYPTE)
+                    this->defaultUI(true,form->getResult());
+                else if (form->getResult() == DECRYPTE)
+                    this->defaultUI(true,form->getResult());
                 else
-                    this->defaultUI(false,res);
+                    this->defaultUI(false,form->getResult());
             }
         }
         else
-            QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Не работает"));
+            sup.message(QString::fromUtf8("Не работает"));
         delete form;
     }
 }
 
-void RsaForm::defaultUI(bool succes, int mode)
+void RsaForm::defaultUI(bool succes, RSAMOD mode)
 {
     QVBoxLayout *leftLayout = new QVBoxLayout;
     QVBoxLayout *rightLayout = new QVBoxLayout;
     QLabel *mainlabel = new QLabel(this);
-    leftLayout->addWidget(mainlabel);
     QPushButton *returnButton = new QPushButton(this);
     returnButton->setText(QString::fromUtf8("Вернуться"));
 
     if(succes)
     {
         mainlabel->setText(QString::fromUtf8("Текст"));
-
-        this->chbx = new QCheckBox(this);
-        this->chbx->setText(QString::fromUtf8("ключ прочитан"));
-        this->chbx->setCheckable(false);
-
         QPushButton *getKeyButton = new QPushButton(this);
         getKeyButton->setText(QString::fromUtf8("Открыть"));
 
         this->ActionButton = new QPushButton(this);
         this->ActionButton->setVisible(false);
-        this->textedit = new QTextEdit(this);
+        this->textedit = new QLineEdit(this);
+        this->metainfo = new QLabel(this);
+        this->metainfo->setText(QString::fromUtf8("Метаинформация: "));
+
         QLabel *label = new QLabel(this);
-        if(mode == 3)
+        if(mode == ENCRYPTE)
         {
+            this->textedit->setMaxLength(15);
             label->setText(QString::fromUtf8("Открыть публичный ключ"));
             this->ActionButton->setText(QString::fromUtf8("Зашифровать"));
             connect(getKeyButton, SIGNAL(clicked()), this, SLOT(openPublicKeySlot()));
             connect(this->ActionButton, SIGNAL(clicked()), this, SLOT(encrypte()));
         }
-        if(mode == 4)
+        if(mode == DECRYPTE)
         {
             this->textedit->setReadOnly(true);
             label->setText(QString::fromUtf8("Открыть секретный ключ"));
@@ -94,24 +83,28 @@ void RsaForm::defaultUI(bool succes, int mode)
             connect(getKeyButton, SIGNAL(clicked()), this, SLOT(openPrivateKeySlot()));
             connect(this->ActionButton, SIGNAL(clicked()), this, SLOT(decrypte()));
         }
+        leftLayout->addWidget(mainlabel);
         leftLayout->addWidget(this->textedit);
+        leftLayout->addWidget(this->metainfo);
+        leftLayout->addStretch(1);
         rightLayout->addWidget(label);
         rightLayout->addWidget(getKeyButton);
-        rightLayout->addWidget(this->chbx);
         rightLayout->addWidget(this->ActionButton);
         rightLayout->addStretch(1);
+        rightLayout->addWidget(returnButton);
+
         connect(returnButton, SIGNAL(clicked()), this->parent, SLOT(moveToRsa()));
     }
     else
     {
-        mainlabel->setText(QString::fromUtf8("Не выбран режим"));
+        mainlabel->setText(QString::fromUtf8("Режим не выбран!"));
         connect(returnButton, SIGNAL(clicked()), this->parent, SLOT(moveToMain()));
+
+        leftLayout->addWidget(mainlabel);
+        leftLayout->addWidget(returnButton);
     }
 
-    rightLayout->addWidget(returnButton);
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setMargin(11);
-    mainLayout->setSpacing(6);
     mainLayout->addLayout(leftLayout);
     mainLayout->addLayout(rightLayout);
     return;
@@ -121,10 +114,10 @@ RsaForm::~RsaForm()
 {
     if(this->textedit != NULL)
         delete this->textedit;
-    if(this->chbx != NULL)
-        delete this->chbx;
     if(this->ActionButton != NULL)
         delete this->ActionButton;
+    if(this->metainfo != NULL)
+        delete this->metainfo;
     delete ui;
 }
 
@@ -132,21 +125,22 @@ RsaForm::~RsaForm()
 
 void RsaForm::encrypte()
 {
+    Support sup;
     std::string message;
     CryptoPP::Integer m, c;
 
-    message = this->textedit->toPlainText().toUtf8().constData();
+    message = this->textedit->text().toUtf8().constData();
     if(message.empty())
     {
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Отсутствует текст"));
+        sup.message(QString::fromUtf8("Отсутствует текст"));
         return;
     }
     // Treat the message as a big endian array
     m = CryptoPP::Integer((const byte *)message.data(), message.size());
 
     QString fileName = QFileDialog::getSaveFileName(this,
-                                QString::fromUtf8("Сохранить файл"),
-                                QDir::currentPath(),
+                                QString::fromUtf8("Сохранить зашифрованный файл"),
+                                QDir::homePath(),
                                 "(*.rsae);;All files (*.*)");
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -163,14 +157,15 @@ void RsaForm::encrypte()
     QTextStream out(&file);
     out << qstr ;
     file.close();
-    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Текст Зашифрован"));
+    sup.message(QString::fromUtf8("Текст Зашифрован"));
 }
 
 void RsaForm::decrypte()
 {
+    Support sup;
     QString fileName = QFileDialog::getOpenFileName(this,
-                                QString::fromUtf8("Открыть файл"),
-                                QDir::currentPath(),
+                                QString::fromUtf8("Открыть зашифрованный файл"),
+                                QDir::homePath(),
                                 "(*.rsae);;All files (*.*)");
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -192,7 +187,7 @@ void RsaForm::decrypte()
     size_t req = r.MinEncodedSize();
     recovered.resize(req);
     r.Encode((byte *)recovered.data(), recovered.size());
-    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("Текст Расшифрован"));
+    sup.message(QString::fromUtf8("Текст Расшифрован"));
     this->textedit->setText(QString::fromStdString(recovered));
 }
 
@@ -200,6 +195,7 @@ void RsaForm::decrypte()
 
 void RsaForm::openPrivateKeySlot()
 {
+    Support sup;
     QString fileName = QFileDialog::getOpenFileName(this,
                                 QString::fromUtf8("Открыть файл"),
                                 QDir::homePath(), "(*.prk);;All files (*.*)");
@@ -207,23 +203,20 @@ void RsaForm::openPrivateKeySlot()
     {
         if(this->prik.Validate(CryptoPP::NullRNG(),0))
         {
-            this->chbx->setCheckable(true);
-            this->chbx->setChecked(true);
             this->ActionButton->setVisible(true);
-            QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ключ прочитан"));
+            this->metainfo->setText(this->metainfo->text() + sup.showMetaInfo(this->prik));
+            sup.message(QString::fromUtf8("Открыт приватный ключ с метаинформацией: \n") + sup.showMetaInfo(this->prik));
             return;
         }
     }
-    this->chbx->setCheckable(true);
-    this->chbx->setChecked(false);
-    this->chbx->setCheckable(false);
     this->ActionButton->setVisible(false);
-    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка ключа"));
+    sup.message(QString::fromUtf8("ошибка ключа"));
     return;
 }
 
 void RsaForm::openPublicKeySlot()
 {
+    Support sup;
     QString fileName = QFileDialog::getOpenFileName(this,
                                 QString::fromUtf8("Открыть файл"),
                                 QDir::homePath(), "(*.pk);;All files (*.*)");
@@ -231,19 +224,14 @@ void RsaForm::openPublicKeySlot()
     {
         if(this->pubk.Validate(CryptoPP::NullRNG(),0))
         {
-            this->chbx->setCheckable(true);
-            this->chbx->setChecked(true);
             this->ActionButton->setVisible(true);
-            Support sup;
-            QMessageBox::information(this,QString::fromUtf8("Сообщение"),sup.showMetoInfo(this->pubk));
+            this->metainfo->setText(this->metainfo->text() + sup.showMetaInfo(this->pubk));
+            sup.message(QString::fromUtf8("Открыт публичный ключ с метаинформацией: \n") + sup.showMetaInfo(this->pubk));
             return;
         }
     }
-    this->chbx->setCheckable(true);
-    this->chbx->setChecked(false);
-    this->chbx->setCheckable(false);
     this->ActionButton->setVisible(false);
-    QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка ключа"));
+    sup.message(QString::fromUtf8("ошибка ключа"));
     return;
 }
 
@@ -259,10 +247,10 @@ bool RsaForm::createPrivateKey(QString pkey)
         CryptoPP::Integer d(settings->value("private/d",0).toString().toUtf8().constData());
         this->prik.Initialize(n, e, d);
         delete settings;
-        return 0;
+        return false;
     }
     delete settings;
-    return 1;
+    return true;
 }
 
 bool RsaForm::createPublicKey(QString pkey)
@@ -274,15 +262,15 @@ bool RsaForm::createPublicKey(QString pkey)
         CryptoPP::Integer e(settings->value("public/e",0).toString().toUtf8().constData());
         this->pubk.Initialize(n, e);
         delete settings;
-        return 0;
+        return false;
     }
     delete settings;
-    return 1;
+    return true;
 }
 
 ///** generate RSA PrivateKey/PublicKey **///
 
-bool RsaForm::keyGeneration()
+QString RsaForm::keyGeneration()
 {
     bool ok;
     Support sup;
@@ -291,36 +279,38 @@ bool RsaForm::keyGeneration()
     CryptoPP::RSA::PrivateKey privKey;
 
     //CryptoPP::Integer e("22245245460426616102189742625441633226801");
-    QString strd = QInputDialog::getText(this,
-                                 QString::fromUtf8("Ведите имя файла ключа"),
-                                 QString::fromUtf8("Введите мето информацию:"),
-                                 QLineEdit::Normal,
-                                 QDir::home().dirName(), &ok);
+    QString strd;
 
-    if (!ok || strd.isEmpty())
+    while ( (strd.size() > 20) || (strd.size() == 0) )
     {
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка мето информации"));
-        return false;
+        strd = QInputDialog::getText(this,
+                                     QString::fromUtf8("Введите метаинформацию"),
+                                     QString::fromUtf8("Введите метаинформацию:"),
+                                     QLineEdit::Normal,
+                                     QDir::home().dirName(), &ok);
+
+        if (!ok)
+            return QString::fromUtf8("Ошибка ввода метаинформации. Ключ не создан");
+
+        if(strd.size() > 20)
+            sup.message(QString::fromUtf8("длина строки должна быть меньше 20 символов"));
+
+        if(strd.isEmpty())
+            sup.message(QString::fromUtf8("длина строки должна быть больше 0"));
     }
+    strd = RSAMASK + strd;
 
-    strd = "1PKRSA_" + strd;
-
-    //QString strd = "1PKRSA_Gavrilov_Andrey_Olegovic";
+    //QString strd = "1RSA_Gavrilov_A";
     CryptoPP::Integer e = sup.qstrToInt(strd);
 
     privKey.Initialize(rng,255,e);
     CryptoPP::RSA::PublicKey pubKey(privKey);
 
     if(!privKey.Validate(rng,0))
-    {
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка создания секретного ключа"));
-        return false;
-    }
+        return QString::fromUtf8("Ошибка создания секретного ключа. Ключ не создан");
+
     if(!pubKey.Validate(rng,0))
-    {
-        QMessageBox::information(this,QString::fromUtf8("Сообщение"),QString::fromUtf8("ошибка создания публичного ключа"));
-        return false;
-    }
+        return QString::fromUtf8("Ошибка создания публичного ключа. Ключ не создан");
 
     std::stringstream ss1;
     ss1 <<  pubKey.GetModulus();
@@ -344,17 +334,19 @@ bool RsaForm::keyGeneration()
     QString qstr = QString::fromStdString(s);
 
     QString dir = QFileDialog::getExistingDirectory(this,
-                               QString::fromUtf8("Открыть папку"),
-                               QDir::currentPath(),
-                               QFileDialog::ShowDirsOnly
-                               | QFileDialog::DontResolveSymlinks);
-
+                               QString::fromUtf8("Выбрать каталог для сохранения"),
+                               QDir::homePath(),
+                               QFileDialog::ShowDirsOnly);
+    if(dir.isEmpty())
+        return QString::fromUtf8("Каталог не выбран. Ключ не создан.");
 
     QString name = dir + "/" + strd;
+
     QString pkname = name + ".pk";
     QSettings settpk(pkname, QSettings::IniFormat);
     settpk.setValue("public/n", nstr);
     settpk.setValue("public/e", estr);
+
     QString prkname = name + ".prk";
     QSettings settpr(prkname, QSettings::IniFormat);
     settpr.setValue("public/n", nstr);
@@ -362,6 +354,10 @@ bool RsaForm::keyGeneration()
     settpr.setValue("private/d", dstr);
     settpr.setValue("private/p", pstr);
     settpr.setValue("private/q", qstr);
-    QMessageBox::information(this,QString::fromUtf8("Сообщение"),("Ключи созданы  " + name));
-    return true;
+
+    QString msg = QString::fromUtf8("Ключи с метaинформацией: \n") +
+                  strd + "\n" +
+                  QString::fromUtf8("созданы по адресу: \n") +
+                  name;
+    return msg;
 }

@@ -9,6 +9,7 @@ MainForm::MainForm(QMainWindow *parent) :
     ui(new Ui::MainForm)
 {
     ui->setupUi(this);
+
     QVBoxLayout *verLayout = new QVBoxLayout;
     this->setLayout(verLayout);
 

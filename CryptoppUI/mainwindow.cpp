@@ -9,6 +9,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    this->setWindowTitle("cui");
+    QPalette Pal(palette());
+    // устанавливаем цвет фона
+    Pal.setColor(QPalette::Background, Qt::white);
+    this->setAutoFillBackground(true);
+    this->setPalette(Pal);
     this->current_form = NULL;
     moveToForm(MAIN_FORM);
 }

@@ -3,12 +3,16 @@
 
 #include <QWidget>
 #include "mainwindow.h"
+#include "rsadialog.h"
 
-#include <qtextedit.h>
-#include <qcheckbox.h>
+#include <qlineedit.h>
+#include <qlabel.h>
 #include <QPushButton>
 
 #include <cryptopp_builded/cryptopp/rsa.h>
+
+
+#define RSAMASK "1RSA_"
 
 namespace Ui {
 class RsaForm;
@@ -30,17 +34,17 @@ public slots:
 
 private:
     bool createPublicKey(QString pkey);
-    bool keyGeneration();
+    QString keyGeneration();
     bool createPrivateKey(QString pkey);
-    void defaultUI(bool succes, int mode);
+    void defaultUI(bool succes, RSAMOD mode);
 
 private:
     Ui::RsaForm *ui;
     CryptoPP::RSA::PublicKey pubk;
     CryptoPP::RSA::PrivateKey prik;
 
-    QTextEdit *textedit;
-    QCheckBox* chbx;
+    QLabel *metainfo;
+    QLineEdit *textedit;
     QPushButton *ActionButton;
     MainWindow* parent;
 };

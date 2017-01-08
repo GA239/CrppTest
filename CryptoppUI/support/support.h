@@ -25,7 +25,9 @@ public:
 
     CryptoPP::Integer qstrToInt(QString str);
     QString intToQStr(CryptoPP::Integer dec);
-    QString showMetoInfo(CryptoPP::RSA::PublicKey pk);
+    QString showMetaInfo(CryptoPP::RSA::PublicKey pk);
+    QString showMetaInfo(CryptoPP::RSA::PrivateKey prk);
+    void message(QString str);
 
 private:
 

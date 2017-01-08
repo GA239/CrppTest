@@ -3,6 +3,15 @@
 
 #include <QDialog>
 
+typedef enum
+{
+    ENCRYPTE,
+    DECRYPTE,
+    KEYGEN,
+    RETURN
+
+}RSAMOD;
+
 namespace Ui {
 class RsaDialog;
 }
@@ -14,7 +23,7 @@ class RsaDialog : public QDialog
 public:
     explicit RsaDialog(QWidget *parent = 0);
     ~RsaDialog();
-    int getResult();
+    RSAMOD getResult();
 
 public slots:
     encr();
@@ -24,7 +33,7 @@ public slots:
 
 private:
     Ui::RsaDialog *ui;
-    int result;
+    RSAMOD result;
 };
 
 #endif // RSADIALOG_H

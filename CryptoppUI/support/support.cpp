@@ -1,5 +1,5 @@
 #include "support.h"
-
+#include <qmessagebox.h>
 
 Support::Support()
 {}
@@ -9,7 +9,6 @@ Support::~Support()
 
 CryptoPP::Integer Support::qstrToInt(QString str)
 {
-    //QString str = "1PKRSA_Gavrilov_Andrey_Olegovich";
     //qDebug() << str;
 
     QString cstr = str.toLatin1();
@@ -45,12 +44,19 @@ QString Support::intToQStr(CryptoPP::Integer dec)
     return qstr;
 }
 
-QString Support::showMetoInfo(CryptoPP::RSA::PublicKey pk)
+QString Support::showMetaInfo(CryptoPP::RSA::PublicKey pk)
 {
-    const CryptoPP::Integer e = pk.GetPublicExponent();
-    return intToQStr(e);
+    return this->intToQStr(pk.GetPublicExponent());
+}
+QString Support::showMetaInfo(CryptoPP::RSA::PrivateKey prk)
+{
+    return this->intToQStr(prk.GetPublicExponent());
 }
 
+void Support::message(QString str)
+{
+    QMessageBox::information(0,QString::fromUtf8("Сообщение"),str);
+}
 
 
 

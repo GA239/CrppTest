@@ -37,3 +37,6 @@ CONFIG(debug, debug|release) {
 CONFIG(release, debug|release) {
     LIBS+= -L../CryptoppUI/cryptopp_builded/rls -lcryptopp
 }
+
+DISTFILES += \
+    img/icon.png

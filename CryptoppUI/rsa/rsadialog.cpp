@@ -10,6 +10,13 @@ RsaDialog::RsaDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    this->setWindowTitle("rsa");
+    QPalette Pal(palette());
+    // устанавливаем цвет фона
+    Pal.setColor(QPalette::Background, Qt::white);
+    this->setAutoFillBackground(true);
+    this->setPalette(Pal);
+
     this->resize(parent->width()/2,parent->height()/2);
     QVBoxLayout *verLayout = new QVBoxLayout;
     this->setLayout(verLayout);
@@ -40,31 +47,31 @@ RsaDialog::~RsaDialog()
     delete ui;
 }
 
-int RsaDialog::getResult()
+RSAMOD RsaDialog::getResult()
 {
     return this->result;
 }
 
 RsaDialog::encr()
 {
-    this->result = 3;
+    this->result = ENCRYPTE;
     reject();
 }
 
 RsaDialog::decr()
 {
-    this->result = 4;
+    this->result = DECRYPTE;
     reject();
 }
 
 RsaDialog::kg()
 {
-    this->result = 5;
+    this->result = KEYGEN;
     reject();
 }
 
 RsaDialog::bk()
 {
-    this->result = 6;
+    this->result = RETURN;
     reject();
 }
